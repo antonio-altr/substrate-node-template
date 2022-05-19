@@ -180,38 +180,52 @@ pub mod pallet {
 			// significantly. You can use `RuntimeDebug` custom derive to hide details of the types
 			// in WASM. The `sp-api` crate also provides a feature `disable-logging` to disable
 			// all logging and thus, remove any logging from the WASM.
-			log::info!("Hello World from offchain workers!");
+			//log::info!("Hello World from offchain workers!");
 
 			// Since off-chain workers are just part of the runtime code, they have direct access
 			// to the storage and other included pallets.
 			//
 			// We can easily import `frame_system` and retrieve a block hash of the parent block.
 			let parent_hash = <system::Pallet<T>>::block_hash(block_number - 1u32.into());
-			log::debug!("Current block: {:?} (parent hash: {:?})", block_number, parent_hash);
+			log::info!("Offchain worker started (block={:?} parenthash={:?})", block_number, parent_hash);
 
 			// It's a good practice to keep `fn offchain_worker()` function minimal, and move most
 			// of the code to separate `impl` block.
 			// Here we call a helper function to calculate current average price.
 			// This function reads storage entries of the current state.
 			let average: Option<u32> = Self::average_price();
-			log::debug!("Current price: {:?}", average);
+			log::info!("Current price: {:?}", average);
 
 			// For this example we are going to send both signed and unsigned transactions
 			// depending on the block number.
 			// Usually it's enough to choose one or the other.
 			let should_send = Self::choose_transaction_type(block_number);
 			let res = match should_send {
-				TransactionType::Signed => Self::fetch_price_and_send_signed(),
-				TransactionType::UnsignedForAny =>
-					Self::fetch_price_and_send_unsigned_for_any_account(block_number),
-				TransactionType::UnsignedForAll =>
-					Self::fetch_price_and_send_unsigned_for_all_accounts(block_number),
-				TransactionType::Raw => Self::fetch_price_and_send_raw_unsigned(block_number),
-				TransactionType::None => Ok(()),
+				TransactionType::Signed => {
+					log::info!("Offchain worker (block={:?}) fetch_price_and_send_signed", block_number);
+					Self::fetch_price_and_send_signed()
+				},
+				TransactionType::UnsignedForAny => {
+					log::info!("Offchain worker (block={:?}) fetch_price_and_send_unsigned_for_any_account", block_number);
+					Self::fetch_price_and_send_unsigned_for_any_account(block_number)
+				},
+				TransactionType::UnsignedForAll => {
+					log::info!("Offchain worker (block={:?}) fetch_price_and_send_unsigned_for_all_accounts", block_number);
+					Self::fetch_price_and_send_unsigned_for_all_accounts(block_number)
+				},
+				TransactionType::Raw => {
+					log::info!("Offchain worker (block={:?}) fetch_price_and_send_raw_unsigned", block_number);
+					Self::fetch_price_and_send_raw_unsigned(block_number)
+				},
+				TransactionType::None => {
+					log::info!("Offchain worker (block={:?}) No txn sent", block_number);
+					Ok(())
+				},
 			};
 			if let Err(e) = res {
-				log::error!("Error: {}", e);
+				log::error!("Error (block={:?}): {}", block_number, e);
 			}
+			log::info!("Offchain worker (block={:?}) done", block_number);
 		}
 	}
 
@@ -418,16 +432,17 @@ impl<T: Config> Pallet<T> {
 				// transactions in a row. If a strict order is desired, it's better to use
 				// the storage entry for that. (for instance store both block number and a flag
 				// indicating the type of next transaction to send).
-				let transaction_type = block_number % 3u32.into();
-				if transaction_type == Zero::zero() {
-					TransactionType::Signed
-				} else if transaction_type == T::BlockNumber::from(1u32) {
-					TransactionType::UnsignedForAny
-				} else if transaction_type == T::BlockNumber::from(2u32) {
-					TransactionType::UnsignedForAll
-				} else {
-					TransactionType::Raw
-				}
+				// let transaction_type = block_number % 3u32.into();
+				// if transaction_type == Zero::zero() {
+				// 	TransactionType::Signed
+				// } else if transaction_type == T::BlockNumber::from(1u32) {
+				// 	TransactionType::UnsignedForAny
+				// } else if transaction_type == T::BlockNumber::from(2u32) {
+				// 	TransactionType::UnsignedForAll
+				// } else {
+				// 	TransactionType::Raw
+				// }
+				TransactionType::Raw
 			},
 			// We are in the grace period, we should not send a transaction this time.
 			Err(MutateStorageError::ValueFunctionFailed(RECENTLY_SENT)) => TransactionType::None,
