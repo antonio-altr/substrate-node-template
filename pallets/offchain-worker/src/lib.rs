@@ -80,6 +80,8 @@ mod tests;
 /// The keys can be inserted manually via RPC (see `author_insertKey`).
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"btc!");
 
+const ONCHAIN_TX_KEY: &[u8] = b"ocw-demo::storage::tx";
+
 /// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrappers.
 /// We can use from supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
 /// the types with this pallet-specific identifier.
@@ -164,6 +166,9 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	#[derive(Debug, serde::Deserialize, Encode, Decode, Default)]
+	struct IndexingData(frame_support::inherent::Vec<u8>, u32);
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		/// Offchain Worker entry point.
@@ -181,6 +186,31 @@ pub mod pallet {
 			// in WASM. The `sp-api` crate also provides a feature `disable-logging` to disable
 			// all logging and thus, remove any logging from the WASM.
 			//log::info!("Hello World from offchain workers!");
+
+			// Reading back the off-chain indexing value. It is exactly the same as reading from
+			// ocw local storage.
+
+			// Loop on last 3 blocks so we don't miss template pallet writing into a block
+			for num in 0u32..3 {
+				let key = Self::derived_key(block_number - num.into());
+				let oci_mem = StorageValueRef::persistent(&key);
+	
+				let data_res = oci_mem.get::<IndexingData>();
+				match data_res {
+					Ok(data_opt) => {
+						if core::option::Option::is_some(&data_opt) {
+							let data = data_opt.unwrap();
+							log::info!("off-chain indexing data: {:?}, {:?}",
+								core::str::from_utf8(&data.0).unwrap_or("error"), data.1);
+						} else {
+							log::info!("no off-chain indexing data retrieved.");
+						}
+					},
+					Err(error) => {
+						log::info!("Problem opening the file: {:?}", error);
+					}
+				};
+			}
 
 			// Since off-chain workers are just part of the runtime code, they have direct access
 			// to the storage and other included pallets.
@@ -735,5 +765,16 @@ impl<T: Config> Pallet<T> {
 			// claim a reward.
 			.propagate(true)
 			.build()
+	}
+
+	fn derived_key(block_number: T::BlockNumber) -> frame_support::inherent::Vec<u8> {
+		block_number.using_encoded(|encoded_bn| {
+				ONCHAIN_TX_KEY
+				.iter()
+				.chain(b"/".iter())
+				.chain(encoded_bn)
+				.copied()
+				.collect::<frame_support::inherent::Vec<u8>>()
+		})
 	}
 }

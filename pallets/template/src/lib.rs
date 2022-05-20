@@ -14,10 +14,15 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+const ONCHAIN_TX_KEY: &[u8] = b"ocw-demo::storage::tx";
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+
+	#[derive(Debug, serde::Deserialize, Encode, Decode, Default)]
+	struct IndexingData(frame_support::inherent::Vec<u8>, u32);
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -57,6 +62,20 @@ pub mod pallet {
 		StorageOverflow,
 	}
 
+	impl<T: Config> Pallet<T> {
+		#[deny(clippy::clone_double_ref)]
+		fn derived_key(block_number: T::BlockNumber) -> frame_support::inherent::Vec<u8> {
+			block_number.using_encoded(|encoded_bn| {
+				super::ONCHAIN_TX_KEY
+					.iter()
+					.chain(b"/".iter())
+					.chain(encoded_bn)
+					.copied()
+					.collect::<frame_support::inherent::Vec<u8>>()
+			})
+		}
+	}
+
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
@@ -73,6 +92,12 @@ pub mod pallet {
 
 			// Update storage.
 			<Something<T>>::put(something);
+
+			// Also write something into off-chain storage.
+			let current_block = <frame_system::Pallet<T>>::block_number();
+			let key = Self::derived_key(current_block);
+			let data = IndexingData(b"antonio".to_vec(), something);
+			frame_support::sp_io::offchain_index::set(&key, &data.encode());
 
 			// Emit an event.
 			Self::deposit_event(Event::SomethingStored(something, who));
