@@ -69,7 +69,7 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 
 #[cfg(test)]
-mod tests;
+mod mock;
 
 /// Defines application identifier for crypto keys of this module.
 ///
@@ -462,17 +462,16 @@ impl<T: Config> Pallet<T> {
 				// transactions in a row. If a strict order is desired, it's better to use
 				// the storage entry for that. (for instance store both block number and a flag
 				// indicating the type of next transaction to send).
-				// let transaction_type = block_number % 3u32.into();
-				// if transaction_type == Zero::zero() {
-				// 	TransactionType::Signed
-				// } else if transaction_type == T::BlockNumber::from(1u32) {
-				// 	TransactionType::UnsignedForAny
-				// } else if transaction_type == T::BlockNumber::from(2u32) {
-				// 	TransactionType::UnsignedForAll
-				// } else {
-				// 	TransactionType::Raw
-				// }
-				TransactionType::Raw
+				let transaction_type = block_number % 3u32.into();
+				if transaction_type == Zero::zero() {
+					TransactionType::Signed
+				} else if transaction_type == T::BlockNumber::from(1u32) {
+					TransactionType::UnsignedForAny
+				} else if transaction_type == T::BlockNumber::from(2u32) {
+					TransactionType::UnsignedForAll
+				} else {
+					TransactionType::Raw
+				}
 			},
 			// We are in the grace period, we should not send a transaction this time.
 			Err(MutateStorageError::ValueFunctionFailed(RECENTLY_SENT)) => TransactionType::None,
