@@ -1,7 +1,17 @@
 use crate as pallet_example_offchain_worker;
 use frame_support::traits::{ConstU16, ConstU32, ConstU64};
 use frame_system as system;
-use sp_core::H256;
+use parity_scale_codec::alloc::sync::Arc;
+use parking_lot::RwLock;
+use sp_core::{
+    H256,
+    offchain::{
+		testing::{OffchainState, PoolState, TestOffchainExt, TestTransactionPoolExt},
+		OffchainDbExt, TransactionPoolExt,
+	},
+};
+use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
+use sp_io::TestExternalities;
 use sp_runtime::{
     MultiSignature,
 	testing::Header,
@@ -98,5 +108,36 @@ where
 		<UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
 	)> {
 		Some((call, (account, (), ())))
+	}
+}
+
+pub struct ExternalityBuilder;
+
+impl ExternalityBuilder {
+	pub fn build() -> (
+		TestExternalities,
+		Arc<RwLock<PoolState>>,
+		Arc<RwLock<OffchainState>>,
+	) {
+		const PHRASE: &str =
+			"expire stage crawl shell boss any story swamp skull yellow bamboo copy";
+
+		let (offchain, offchain_state) = TestOffchainExt::new();
+		let (pool, pool_state) = TestTransactionPoolExt::new();
+		let keystore = KeyStore::new();
+		keystore
+			.sr25519_generate_new(super::KEY_TYPE, Some(&format!("{}/hunter1", PHRASE)))
+			.unwrap();
+
+		let storage = frame_system::GenesisConfig::default()
+			.build_storage::<TestOCWRuntime>()
+			.unwrap();
+
+		let mut t = TestExternalities::from(storage);
+		t.register_extension(OffchainDbExt::new(offchain));
+		t.register_extension(TransactionPoolExt::new(pool));
+		t.register_extension(KeystoreExt(Arc::new(keystore)));
+		t.execute_with(|| System::set_block_number(1));
+		(t, pool_state, offchain_state)
 	}
 }
