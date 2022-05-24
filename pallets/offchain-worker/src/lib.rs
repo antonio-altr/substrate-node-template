@@ -549,7 +549,7 @@ impl<T: Config> Pallet<T> {
 		// by writing `UnsignedValidator`. Note that it's EXTREMELY important to carefuly
 		// implement unsigned validation logic, as any mistakes can lead to opening DoS or spam
 		// attack vectors. See validation logic docs for more details.
-		SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
+		SubmitTransaction::<T, Call<T>>::submit_transaction(call.into(), None)
 		.map_err(|()| "Unable to submit unsigned transaction.")?;
 
 		Ok(())

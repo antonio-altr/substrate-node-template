@@ -1,7 +1,5 @@
 use crate as pallet_example_offchain_worker;
 use frame_support::traits::{ConstU16, ConstU32, ConstU64};
-use frame_system as system;
-use parity_scale_codec::alloc::sync::Arc;
 use parking_lot::RwLock;
 use sp_core::{
     H256,
@@ -17,8 +15,9 @@ use sp_runtime::{
 	testing::{Header, TestXt},
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
 };
+use sp_std::sync::Arc;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestOCWRuntime>;
+pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestOCWRuntime>;
 type Block = frame_system::mocking::MockBlock<TestOCWRuntime>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
@@ -86,14 +85,14 @@ impl frame_system::offchain::SigningTypes for TestOCWRuntime {
 	type Signature = Signature;
 }
 
-pub type Extrinsic = TestXt<Call, ()>;
+//pub type Extrinsic = TestXt<Call, ()>;
 
 impl<LocalCall> frame_system::offchain::SendTransactionTypes<LocalCall> for TestOCWRuntime
 where
 	Call: From<LocalCall>,
 {
 	type OverarchingCall = Call;
-	type Extrinsic = Extrinsic;
+	type Extrinsic = UncheckedExtrinsic;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for TestOCWRuntime
@@ -103,13 +102,13 @@ where
 	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
 		call: Call,
 		_public: <Signature as sp_runtime::traits::Verify>::Signer,
-		_account: AccountId,
-		nonce: u64,
+		account: AccountId,
+		_nonce: u64,
 	) -> Option<(
 		Call,
-		<Extrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
+		<UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
 	)> {
-		Some((call, (nonce, ())))
+		Some((call, (account, (), ())))
 	}
 }
 
