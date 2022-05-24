@@ -14,7 +14,7 @@ use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
 use sp_io::TestExternalities;
 use sp_runtime::{
     MultiSignature,
-	testing::Header,
+	testing::{Header, TestXt},
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
 };
 
@@ -36,11 +36,11 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		OffChainWorker: pallet_example_offchain_worker::{Pallet, Call, Storage, Event<T>},
+		OffChainWorker: pallet_example_offchain_worker::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
 	}
 );
 
-impl system::Config for TestOCWRuntime {
+impl frame_system::Config for TestOCWRuntime {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -86,12 +86,14 @@ impl frame_system::offchain::SigningTypes for TestOCWRuntime {
 	type Signature = Signature;
 }
 
-impl<C> frame_system::offchain::SendTransactionTypes<C> for TestOCWRuntime
+pub type Extrinsic = TestXt<Call, ()>;
+
+impl<LocalCall> frame_system::offchain::SendTransactionTypes<LocalCall> for TestOCWRuntime
 where
-	Call: From<C>,
+	Call: From<LocalCall>,
 {
 	type OverarchingCall = Call;
-	type Extrinsic = UncheckedExtrinsic;
+	type Extrinsic = Extrinsic;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for TestOCWRuntime
@@ -101,13 +103,13 @@ where
 	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
 		call: Call,
 		_public: <Signature as sp_runtime::traits::Verify>::Signer,
-		account: AccountId,
-		_nonce: u64,
+		_account: AccountId,
+		nonce: u64,
 	) -> Option<(
 		Call,
-		<UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
+		<Extrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
 	)> {
-		Some((call, (account, (), ())))
+		Some((call, (nonce, ())))
 	}
 }
 

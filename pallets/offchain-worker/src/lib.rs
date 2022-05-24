@@ -71,6 +71,9 @@ use sp_std::vec::Vec;
 #[cfg(test)]
 mod mock;
 
+#[cfg(test)]
+mod tests;
+
 /// Defines application identifier for crypto keys of this module.
 ///
 /// Every module that deals with signatures needs to declare its unique identifier for
@@ -530,10 +533,14 @@ impl<T: Config> Pallet<T> {
 		// Note this call will block until response is received.
 		let price = Self::fetch_price().map_err(|_| "Failed to fetch price")?;
 
+		Self::send_raw_unsigned(block_number, price)
+	}
+
+	fn send_raw_unsigned(block_number: T::BlockNumber, price: u32) -> Result<(), &'static str> {
 		// Received price is wrapped into a call to `submit_price_unsigned` public function of this
 		// pallet. This means that the transaction, when executed, will simply call that function
 		// passing `price` as an argument.
-		let call = Call::submit_price_unsigned { block_number, price };
+		let call: Call<T> = Call::submit_price_unsigned { block_number, price };
 
 		// Now let's create a transaction out of this call and submit it to the pool.
 		// Here we showcase two ways to send an unsigned transaction / unsigned payload (raw)
@@ -542,9 +549,8 @@ impl<T: Config> Pallet<T> {
 		// by writing `UnsignedValidator`. Note that it's EXTREMELY important to carefuly
 		// implement unsigned validation logic, as any mistakes can lead to opening DoS or spam
 		// attack vectors. See validation logic docs for more details.
-		//
 		SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
-			.map_err(|()| "Unable to submit unsigned transaction.")?;
+		.map_err(|()| "Unable to submit unsigned transaction.")?;
 
 		Ok(())
 	}
