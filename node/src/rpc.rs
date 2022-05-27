@@ -45,6 +45,8 @@ where
 
 	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone())));
 
+	io.extend_with(crate::silly_rpc::SillyRpc::to_delegate(crate::silly_rpc::Silly {}));
+
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
