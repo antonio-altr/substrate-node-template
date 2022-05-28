@@ -46,7 +46,7 @@ where
 
 	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone())));
 
-	io.extend_with(pallet_template_rpc::PalletTemplateRPCApi::to_delegate(PalletTemplate::new(client)));
+	io.extend_with(PalletTemplateRPCApi::to_delegate(PalletTemplate::new(client)));
 
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
