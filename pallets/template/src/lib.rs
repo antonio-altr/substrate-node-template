@@ -100,3 +100,12 @@ pub mod pallet {
 		}
 	}
 }
+
+impl<T: Config> Pallet<T> {
+	pub fn get_num() -> u32 {
+		match <Something<T>>::get() {
+			None => 0,
+			Some(num) => num,
+		}
+	}
+}

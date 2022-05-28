@@ -3806,6 +3806,7 @@ dependencies = [
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-template",
+ "pallet-template-runtime-api",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
@@ -4151,6 +4152,14 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-template-runtime-api"
+version = "4.0.0-dev"
+dependencies = [
+ "serde_json",
+ "sp-api",
 ]
 
 [[package]]
