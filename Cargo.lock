@@ -3757,6 +3757,7 @@ dependencies = [
  "jsonrpc-core",
  "node-template-runtime",
  "pallet-template-rpc",
+ "pallet-template-runtime-api",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
